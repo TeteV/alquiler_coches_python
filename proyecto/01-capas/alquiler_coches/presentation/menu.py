@@ -14,7 +14,7 @@ def main():
         eleccion = input("Seleccione una opción (1-8): ")
         try:
             if eleccion == '1':
-                print("Has seleccionado la Opción 1")
+                print("Has entrado en la opcion Registro de vehiculo")
             elif eleccion == '2':
                 print("Has seleccionado la Opción 2")
             elif eleccion == '3':
