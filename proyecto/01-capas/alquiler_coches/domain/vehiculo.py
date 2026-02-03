@@ -3,7 +3,7 @@ import datetime
 
 class Vehiculo:
     def __init__(self, matricula, marca, modelo, anio, puertas = 0):
-        self.matricula = matricula
+        self._matricula = matricula
         self.marca = marca
         self.modelo = modelo
         self.anio = anio
@@ -24,7 +24,7 @@ class Vehiculo:
             raise ValueError("La matrícula debe tener el formato 'letra+numero'.")
     @anio.setter
     def anio(self, value):
-        if value < 1900 or value > datetime.now().year:
+        if value < 1900 or value > datetime.datetime.now().year:
             raise ValueError("El año debe estar entre 1900 y 2026.")
         self._anio = value
 
