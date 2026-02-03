@@ -15,6 +15,8 @@ def mostrar_menu():
 def main():
     repository = VehiculosRepository()
     servicio = VehiculosService(repository)
+    servicio.agregar_vehiculo("A1", "Toyota", "Corolla", 2023, puertas=4)
+    servicio.agregar_vehiculo("B2", "Honda", "Civic", 2022, puertas=4)
     while True:
         mostrar_menu()
         eleccion = input("Seleccione una opción (1-8): ")     
