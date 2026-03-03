@@ -1,148 +1,71 @@
-# REVIEW — Nestor
-
-## REVISIÓN FASE 01 - 2026-03-03 — Nota: 5/10
+# Revisión del proyecto — Nestor
 
 **Fuente de verdad:** `proyecto/01-capas/`
+**Fases detectadas:** 01 (capas)
 
----
+## REVISIÓN FASE 03 - 2026-03-03 — Nota: 0/10
 
-### Lo que cumple
+>Sin implementar
 
-- **Repositorio creado y accesible** — el repositorio existe y se puede clonar.
-- **README.md en la raíz** — es extenso y recoge descripción, arquitectura, instrucciones de uso, validaciones y ejemplos. Muy bien trabajado.
-- **Subcarpeta `proyecto/` con carpeta de fase `01-capas/`** — la organización de carpetas sigue el esquema pedido.
-- **Estructura de paquetes Python** — todos los directorios tienen su `__init__.py` y los imports relativos funcionan correctamente.
-- **Clases principales creadas** — `Vehiculo`, `VehiculosRepository`, `VehiculosService` y `SucursalA` están presentes y con código real.
-- **Encapsulamiento básico** — `Vehiculo` usa atributos privados (`_matricula`, `_anio`) con `@property` y setters.
-- **`main.py` correcto** — configura el `sys.path` y llama al menú correctamente.
-- **Menú con opciones básicas visibles** — listar, registrar y eliminar funcionan en parte.
+## REVISIÓN FASE 02 - 2026-03-03 — Nota: 0/10
 
----
+>Sin implementar
 
-### Lo que no cumple y cómo corregirlo
+## REVISIÓN FASE 01 - 2026-03-03 — Nota: 4/10
 
-#### 1. Las capas no corresponden al modelo de referencia
+### Cumple
 
-**Problema:** La arquitectura del proyecto tiene la siguiente estructura real:
+- Repositorio creado y accesible.
+- `README.md` en la raíz, extenso y bien trabajado: descripción, arquitectura, instrucciones de uso, validaciones y ejemplos.
+- Subcarpeta `proyecto/` con carpeta de fase `01-capas/`.
+- Estructura de paquetes Python con `__init__.py` en todos los directorios e imports relativos correctos.
+- Clases principales creadas con código real: `Vehiculo`, `VehiculosRepository`, `VehiculosService` y `SucursalA`.
+- Encapsulamiento básico en `Vehiculo`: atributos privados (`_matricula`, `_anio`), `@property` y setters con validación.
+- `main.py` correcto: configura el `sys.path` y llama al menú.
+- Alcance del menú adecuado para una aplicación de este tipo: 8 opciones (listar, buscar, alquilar, devolver, registrar, modificar, eliminar y salir).
 
-```
-alquiler_coches/
-├── domain/          ✅ (correcto)
-├── application/     ← contiene el repositorio (debería estar en infrastructure/)
-├── services/        ← capa extra no prevista en el modelo
-├── infraestructure/ ← vacía (y con typo: falta la 'c' → infrastructure)
-└── presentation/    ✅ (correcto)
-```
+### Errores y aspectos a mejorar
 
-En el modelo de referencia, `application/` contiene los servicios (casos de uso) e `infrastructure/` contiene las implementaciones concretas (repositorio en memoria, datos iniciales). En tu caso:
-- Los **servicios** (`VehiculosService`) están en una carpeta `services/` que no es una capa estándar.
-- El **repositorio** (`VehiculosRepository`) está en `application/`, pero es una implementación concreta y debería estar en `infrastructure/`.
-- La carpeta `infraestructure/` está vacía y tiene un error tipográfico (debería ser `infrastructure`).
+- **[BUG] `domain/vehiculo.py:21-24` — el setter de `matricula` valida pero no guarda el valor.**. Además, el `__init__` asigna directamente `self._matricula = matricula` saltándose la validación, por lo que se pueden crear vehículos con matrículas inválidas.
+  - *Cómo resolverlo:* Añade `self._matricula = value` al final del setter. En `__init__` cambia `self._matricula = matricula` por `self.matricula = matricula` (sin guión bajo) para que pase por el setter.
 
-**Cómo resolverlo:** Mueve `VehiculosRepository` a `infrastructure/` y `VehiculosService` a `application/`. Elimina la carpeta `services/`. Corrige el nombre `infraestructure` → `infrastructure`.
+- **[BUG] `presentation/menu.py:29-32` — la lógica de la búsqueda está invertida.** La condición `if not vehiculo:` intenta acceder a los atributos del vehículo cuando este es `None`, produciendo un `AttributeError`. El mensaje "Vehículo no encontrado" se muestra precisamente cuando el vehículo sí existe.
+  - *Cómo resolverlo:* Invierte la condición: `if vehiculo:` para mostrar los datos, y `else:` para el mensaje de no encontrado.
 
----
+- **[DISEÑO] Las capas no corresponden al modelo de referencia.** La estructura real es:
+  ```
+  alquiler_coches/
+  ├── application/     ← tiene el repositorio (debería estar en infrastructure/)
+  ├── services/        ← capa extra no prevista en el modelo
+  ├── infraestructure/ ← vacía
+  └── presentation/    ← correcto
+  ```
+  `application/` debería contener los servicios (casos de uso); `infrastructure/` debería contener el repositorio en memoria y los datos iniciales. La carpeta `services/` no es una capa estándar del modelo.
+  - *Cómo resolverlo:* Mueve `VehiculosRepository` a `infrastructure/`, mueve `VehiculosService` a `application/` y elimina la carpeta `services/`. Corrige también el typo `infraestructure` → `infrastructure`.
 
-#### 2. El setter de `matricula` no guarda el valor
+- **[DISEÑO] `application/vehiculos_repository.py:16-18` — `obtener_todos()` imprime directamente en la capa de datos.** La capa de repositorio no debe responsabilizarse de presentar información; debe devolver los datos y dejar que la presentación decida cómo mostrarlos.
+  - *Cómo resolverlo:* Cambia el método para que devuelva `list(self._vehiculos.values())` y mueve el `print` al menú.
 
-**Problema:** En `domain/vehiculo.py`, el setter de `matricula` valida el formato pero nunca asigna el valor al atributo privado:
+- **[DISEÑO] `presentation/menu.py:3` — el menú importa `VehiculosRepository` directamente.** La capa de presentación no debería conocer el repositorio; solo debería interactuar con el servicio.
+  - *Cómo resolverlo:* Crea el repositorio y el servicio en `main.py` y pasa el servicio ya configurado al menú. Elimina el import de `VehiculosRepository` del menú.
 
-```python
-@matricula.setter
-def matricula(self, value):
-    value = value.strip().upper()
-    if len(value) != 2 or not value[0].isalpha() or not value[1].isdigit():
-        raise ValueError("La matrícula debe tener el formato 'letra+numero'.")
-    # ← falta: self._matricula = value
-```
+- **[IMPORTANTE] Opciones 3, 4 y 6 del menú sin implementar.** Las opciones «Opción 3», «Opción 4» y «Modificar vehículo» solo imprimen texto de relleno; el menú no está completo.
+  - *Cómo resolverlo:* Define qué hacen esas opciones (por ejemplo, alquilar, devolver y modificar datos) e impleméntalas usando los métodos ya disponibles en el servicio.
 
-Además, el `__init__` asigna directamente `self._matricula = matricula` saltándose la validación. Esto significa que se puede crear un vehículo con matrícula inválida.
+- **[IMPORTANTE] Datos iniciales hardcoded en el menú.** Los vehículos de prueba se crean directamente dentro de `menu.py`, mezclando responsabilidades. Sé que lo haces para pruebas, pero hay que arreglarlo.
+  - *Cómo resolverlo:* Crea un módulo en `infrastructure/` (por ejemplo, `datos_iniciales.py`) con una función que reciba el repositorio o el servicio y cargue los datos. Llama a esa función desde `main.py`, no desde el menú.
 
-**Cómo resolverlo:** Añade `self._matricula = value` al final del setter. En `__init__` cambia `self._matricula = matricula` por `self.matricula = matricula` (sin guión bajo) para que pase por el setter.
+- **[IMPORTANTE] El dominio solo tiene dos entidades (`Vehiculo` y `SucursalA`); el checklist requiere al menos tres.**
+  - *Cómo resolverlo:* Añade una tercera entidad de dominio con sentido para tu sistema de alquiler; por ejemplo una clase `Cliente` (quien alquila el vehículo), `Contrato` (que representa el alquiler activo) o `Sucursal` como clase base de la que hereden distintos tipos de sucursal.
 
----
+- **[IMPORTANTE] No hay herencia real en el código.** El checklist exige que al menos una clase use herencia (`class Hija(Padre):`). El nombre `SucursalA` sugiere la intención, pero no hay ninguna relación de herencia implementada en ningún fichero.
+  - *Cómo resolverlo:* Define una clase base `Sucursal` en `domain/` con los atributos y métodos comunes, y haz que `SucursalA` herede de ella (`class SucursalA(Sucursal):`). Alternativamente, si tu tercera entidad lo permite, usa herencia en otro par de clases del dominio.
 
-#### 3. Lógica invertida en la búsqueda del menú
+- **[IMPORTANTE] `domain/sucursal_a.py` no está integrada en el sistema: falta repositorio y opciones de menú.** La clase `SucursalA` existe en el dominio pero no hay repositorio para guardar sucursales, ni servicios que las gestionen, ni opciones en el menú para crearlas, consultarlas o asignarles vehículos. La funcionalidad de sucursales queda completamente inutilizada.
+  - *Cómo resolverlo:* Crea un repositorio de sucursales en `infrastructure/` (similar a `VehiculosRepository`), un método o servicio en `application/` para gestionarlas, y añade al menú al menos las opciones básicas: listar sucursales, crear sucursal y asignar un vehículo a una sucursal.
 
-**Problema:** En `presentation/menu.py`, la condición de búsqueda está al revés:
+- **[SUGERENCIA] `services/vehiculos_service.py` — `eliminar_vehiculo` no captura excepciones.** A diferencia de `agregar_vehiculo`, que captura `ValueError` y devuelve `False`, `eliminar_vehiculo` deja que la excepción se propague. Esto es inconsistente.
+  - *Cómo resolverlo:* Aplica el mismo patrón `try/except ValueError` en `eliminar_vehiculo`, o define una política coherente para el manejo de errores en todos los métodos del servicio.
 
-```python
-vehiculo = servicio.buscar_vehiculo(matricula.upper())
-if not vehiculo:                        # ← si NO se encuentra...
-    print(f"Matrícula: {vehiculo.matricula}, ...")  # ← intenta acceder a sus atributos → error
-else:
-    print("Vehículo no encontrado.")    # ← se muestra cuando SÍ se encuentra
-```
-
-Esto provoca un `AttributeError` si el vehículo no existe, y muestra "no encontrado" cuando sí existe.
-
-**Cómo resolverlo:** Invierte la condición:
-
-```python
-if vehiculo:
-    print(f"Matrícula: {vehiculo.matricula}, Marca: {vehiculo.marca}, ...")
-else:
-    print("Vehículo no encontrado.")
-```
-
----
-
-#### 4. Opciones 3, 4 y 6 del menú sin implementar
-
-**Problema:** Las opciones «Opción 3», «Opción 4» y «Modificar vehículo» solo imprimen un texto de ruta de relleno. El menú no está completo.
-
-**Cómo resolverlo:** Define qué hacen esas opciones (por ejemplo, alquilar un vehículo, devolverlo y modificar datos) e impleméntalas usando los métodos ya disponibles en `VehiculosService`.
-
----
-
-#### 5. Datos iniciales hardcoded en el menú
-
-**Problema:** Los vehículos de prueba se crean directamente en `menu.py`:
-
-```python
-servicio.agregar_vehiculo("A1", "Toyota", "Corolla", 2023, puertas=4)
-servicio.agregar_vehiculo("B2", "Honda", "Civic", 2022, puertas=4)
-```
-
-Esto mezcla responsabilidades: la presentación no debería cargar datos iniciales.
-
-**Cómo resolverlo:** Crea un módulo en `infrastructure/` (por ejemplo, `datos_iniciales.py`) con una función que reciba el servicio o repositorio y cargue los datos. Llama a esa función desde `main.py`, no desde el menú.
-
----
-
-#### 6. Comentario con ruta Windows en el menú
-
-**Problema:** La primera línea de `presentation/menu.py` contiene una ruta absoluta de Windows:
-
-```python
-#La ruta para iniciar el proyecto es H:\CodigoVSCode\alquiler_coches_python\proyecto\01-capas>
-```
-
-Esto no aporta información útil en el repositorio.
-
-**Cómo resolverlo:** Elimina esa línea o sustitúyela por la instrucción de ejecución correcta: `python main.py` desde `proyecto/01-capas/`.
-
----
-
-#### 7. La clase `SucursalA` no está integrada
-
-**Problema:** `domain/sucursal_a.py` implementa la clase `SucursalA` con métodos de gestión de vehículos, pero no se usa en ningún sitio del sistema (no aparece en el menú, ni en los servicios, ni en el repositorio).
-
-**Cómo resolverlo:** Si la sucursal es parte del modelo de dominio de tu proyecto, intégrala en el flujo principal. Si no, elimínala para no añadir código muerto.
-
----
-
-### Resumen de la nota
-
-| Criterio | Estado |
-|---|---|
-| Repositorio creado y compartido | ✅ |
-| README.md con instrucciones | ✅ |
-| Subcarpeta `proyecto/` y carpeta de fase | ✅ |
-| Organización en capas correcta | ❌ (capas mal asignadas, infrastructure vacía) |
-| Estructura de módulos y paquetes Python | ✅ |
-| POO con clases y encapsulamiento | ⚠️ (setter matrícula buggeado) |
-| Menú funciona correctamente | ❌ (búsqueda invertida, 3 opciones sin implementar) |
-| Nombres significativos y PEP8 | ⚠️ (typo en `infraestructure`) |
-
-**Nota final: 5/10**
+- **[SUGERENCIA] `presentation/menu.py:1` — comentario con ruta local de Windows.** La primera línea contiene una ruta absoluta del equipo de desarrollo que no aporta nada al repositorio.
+  - *Cómo resolverlo:* Elimina esa línea o sustitúyela por la instrucción de ejecución correcta: `python main.py` desde `proyecto/01-capas/`.
