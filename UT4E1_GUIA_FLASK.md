@@ -147,7 +147,7 @@ Los parámetros de creación/modificación se pasan como segmentos de URL.
 
 ---
 
-## 6. Puntos de atención específicos del dominio
+## 6. Advertencias específicos del dominio
 
 ### 6.1. Estado `alquilado` como campo de transición, no como CRUD
 El campo `alquilado` no se debe actualizar a través de `PUT /vehiculos/<matricula>` (modificación general). El cambio de estado tiene rutas propias (`/alquilar`, `/devolver`) para evitar que un cliente lo establezca directamente a `true` sin pasar por la lógica de dominio.
